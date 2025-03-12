@@ -1,1 +1,42 @@
-
+name: Java CI with Gradle
+ 
+ on:
+   push:
+     branches: [ "main" ]
+   pull_request:
+     branches: [ "main" ]
+ 
+ jobs:
+   build:
+ 
+     runs-on: ubuntu-latest
+ 
+     steps:
+     - uses: actions/checkout@v4
+     - name: Set up JDK 21
+       uses: actions/setup-java@v4
+       with:
+         java-version: '21'
+         distribution: 'temurin'
+    - name: Checkout project sources
+      uses: actions/checkout@v2
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+    - name: Run build with Gradle Wrapper
+      run: |
+        cd ./LogX
+        ./gradlew build
+     - name: Set date and short sha as tag name
+       id: set_tag
+       run: |
+         SHORT_SHA=${GITHUB_SHA::7}
+         DATE=$(date +'%Y-%m-%d')
+         echo "TAG_NAME=${DATE}-${SHORT_SHA}" >> $GITHUB_ENV
+         echo "Generated Tag: ${{ env.TAG_NAME }}"
+     - name: Auto Release
+       uses: marvinpinto/action-automatic-releases@latest
+       with:
+         repo_token: ${{ secrets.GITHUB_TOKEN }}
+         automatic_release_tag: ${{ env.TAG_NAME }}
+         prerelease: false
+         files: ./LogX/build/libs/*.jar
