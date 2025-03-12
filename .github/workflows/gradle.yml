@@ -5,12 +5,13 @@
      branches: [ "main" ]
    pull_request:
      branches: [ "main" ]
- 
+
  jobs:
    build:
  
      runs-on: ubuntu-latest
- 
+     permissions:
+      contents: write  # 发布所需的权限
      steps:
      - uses: actions/checkout@v4
      - name: Set up JDK 21
@@ -25,6 +26,7 @@
      - name: Run build with Gradle Wrapper
        run: |
          cd ./LogX
+         chmod +x ./gradlew
          ./gradlew build
      - name: Set date and short sha as tag name
        id: set_tag
