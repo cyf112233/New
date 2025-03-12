@@ -1,4 +1,4 @@
-name: Java CI with Gradle
+ name: AwA
  
  on:
    push:
@@ -18,14 +18,14 @@ name: Java CI with Gradle
        with:
          java-version: '21'
          distribution: 'temurin'
-    - name: Checkout project sources
-      uses: actions/checkout@v2
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
-    - name: Run build with Gradle Wrapper
-      run: |
-        cd ./LogX
-        ./gradlew build
+     - name: Checkout project sources
+       uses: actions/checkout@v2
+     - name: Setup Gradle
+       uses: gradle/gradle-build-action@v2
+     - name: Run build with Gradle Wrapper
+       run: |
+         cd ./LogX
+         ./gradlew build
      - name: Set date and short sha as tag name
        id: set_tag
        run: |
