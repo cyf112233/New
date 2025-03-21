@@ -1,8 +1,4 @@
 name: CommandLogger
-main: com.Tms.commandlogger.CommandLogger
+main: com.yourname.CommandLoggerPlugin
 version: 1.0
-api-version: 1.21
-author: Tms
-description: Advanced command execution logger
-libraries:
-  - io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT
+api-version: 1.16
