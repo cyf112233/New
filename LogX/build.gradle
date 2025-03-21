@@ -11,10 +11,9 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.bukkit:bukkit:1.21.4-R0.1-SNAPSHOT'  // 根据你的版本来调整
+    implementation 'org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT'  // 根据你的版本来调整
     implementation 'org.spongepowered:configurate-core:4.1'
 }
-
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
