@@ -1,187 +1,151 @@
+package com.Tms;
+
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
+import org.bukkit.command.Player;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
+import org.bukkit.event.block.BlockCommandEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.command.Command;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
-public class CommandLogger extends JavaPlugin implements Listener {
+public class CommandLoggerPlugin extends JavaPlugin implements Listener {
 
-    // 通用配置
-    private static final int MAX_LOG_SIZE = 100 * 1024; // 100KB
-    private static final SimpleDateFormat FILE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    
-    // 普通命令日志（玩家+控制台）
-    private BufferedWriter normalLogWriter;
-    private File normalLogFile;
-    private long normalLogSize;
-    
-    // 命令方块专用日志
-    private BufferedWriter commandBlockLogWriter; 
-    private File commandBlockLogFile;
-    private long commandBlockLogSize;
+    private int commandBlockCount = 0;
+    private File commandBlockLogDirectory;
+    private File currentCommandBlockLogFile;
+    private FileWriter commandBlockLogWriter;
 
     @Override
     public void onEnable() {
+        saveDefaultConfig();
+        this.commandBlockLogDirectory = new File(getDataFolder(), "cmds/logs/command_block");
+
+        if (!commandBlockLogDirectory.exists()) {
+            commandBlockLogDirectory.mkdirs();
+        }
+
+        getServer().getPluginManager().registerEvents(this, this);
+        createNewLogFile();
+
+        getLogger().info("CommandLogger Plugin Enabled!");
+    }
+
+    @Override
+    public void onDisable() {
         try {
-            // 初始化日志系统
-            initNormalLogger();
-            initCommandBlockLogger();
-            
-            getServer().getPluginManager().registerEvents(this, this);
+            if (commandBlockLogWriter != null) {
+                commandBlockLogWriter.close();
+            }
         } catch (IOException e) {
-            getLogger().severe("日志系统初始化失败: " + e.getMessage());
-            getServer().getPluginManager().disablePlugin(this);
+            getLogger().warning("Failed to close log files: " + e.getMessage());
+        }
+        getLogger().info("CommandLogger Plugin Disabled!");
+    }
+
+    private void createNewLogFile() {
+        String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+
+        // For command block commands
+        int commandBlockLogNumber = getLogFileCount(commandBlockLogDirectory) + 1;
+        currentCommandBlockLogFile = new File(commandBlockLogDirectory, timestamp + "-" + commandBlockLogNumber + ".log");
+
+        try {
+            if (!currentCommandBlockLogFile.exists()) {
+                currentCommandBlockLogFile.createNewFile();
+            }
+            commandBlockLogWriter = new FileWriter(currentCommandBlockLogFile, true);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    // 初始化普通命令日志
-    private void initNormalLogger() throws IOException {
-        File logDir = new File(getDataFolder(), "normal-logs");
-        if (!logDir.exists() && !logDir.mkdirs()) {
-            throw new IOException("无法创建普通日志目录");
-        }
-        normalLogFile = new File(logDir, FILE_FORMAT.format(new Date()) + ".log");
-        normalLogWriter = new BufferedWriter(new FileWriter(normalLogFile, true));
-        normalLogSize = normalLogFile.length();
-    }
-
-    // 初始化命令方块日志
-    private void initCommandBlockLogger() throws IOException {
-        File logDir = new File(getDataFolder(), "commandblock-logs");
-        if (!logDir.exists() && !logDir.mkdirs()) {
-            throw new IOException("无法创建命令方块日志目录");
-        }
-        commandBlockLogFile = new File(logDir, FILE_FORMAT.format(new Date()) + ".log");
-        commandBlockLogWriter = new BufferedWriter(new FileWriter(commandBlockLogFile, true));
-        commandBlockLogSize = commandBlockLogFile.length();
+    private int getLogFileCount(File logDirectory) {
+        File[] files = logDirectory.listFiles((dir, name) -> name.endsWith(".log"));
+        return files == null ? 0 : files.length;
     }
 
     @EventHandler
-    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
-        logNormalCommand(
-            event.getPlayer().getName(),
-            event.getMessage(),
-            "PLAYER"
-        );
+    public void onBlockCommand(BlockCommandEvent event) {
+        BlockCommandSender sender = event.getBlockCommandSender();
+        String command = event.getCommand();
+        String coordinates = sender.getBlock().getX() + "," + sender.getBlock().getY() + "," + sender.getBlock().getZ() + "," + sender.getBlock().getWorld().getName();
+
+        // Execute the command and check result
+        boolean success = executeCommand(sender, command);
+        logCommandBlock(sender.getName(), coordinates, command, success);
     }
 
     @EventHandler
     public void onServerCommand(ServerCommandEvent event) {
         CommandSender sender = event.getSender();
-        
-        if (sender instanceof BlockCommandSender) {
-            BlockCommandSender blockSender = (BlockCommandSender) sender;
-            logCommandBlockCommand(
-                blockSender.getBlock(),
-                event.getCommand()
-            );
-        } else if (sender instanceof ConsoleCommandSender) {
-            logNormalCommand(
-                "CONSOLE",
-                event.getCommand(),
-                "SERVER"
-            );
-        }
+        String command = event.getCommand();
+
+        // Execute the command and check result
+        boolean success = executeCommand(sender, command);
+        logCommand(sender.getName(), command, success);
     }
 
-    // 记录普通命令（玩家/控制台）
-    private synchronized void logNormalCommand(String sender, String command, String type) {
+    @EventHandler
+    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        String command = event.getMessage();
+
+        // Execute the command and check result
+        boolean success = executeCommand(player, command);
+        logCommand(player.getName(), command, success);
+    }
+
+    private boolean executeCommand(CommandSender sender, String command) {
         try {
-            String entry = String.format("[%s] %s: %s%n",
-                new SimpleDateFormat("HH:mm:ss").format(new Date()),
-                sender, 
-                command);
-            
-            writeWithRotation(
-                entry, 
-                normalLogWriter, 
-                normalLogFile, 
-                normalLogSize,
-                this::initNormalLogger
-            );
-            
-        } catch (IOException e) {
-            getLogger().severe("普通日志写入失败: " + e.getMessage());
-        }
-    }
+            // Dispatch the command and check if it's successful (this is where you would ideally check success)
+            Command cmd = getServer().getCommandMap().getCommand(command.split(" ")[0]);
 
-    // 记录命令方块命令
-    private synchronized void logCommandBlockCommand(Block block, String command) {
-        try {
-            String location = String.format("%s (%d,%d,%d)",
-                block.getWorld().getName(),
-                block.getX(),
-                block.getY(),
-                block.getZ());
-            
-            String entry = String.format("[%s] %s: %s%n",
-                new SimpleDateFormat("HH:mm:ss").format(new Date()),
-                location,
-                command);
-            
-            writeWithRotation(
-                entry, 
-                commandBlockLogWriter, 
-                commandBlockLogFile, 
-                commandBlockLogSize,
-                this::initCommandBlockLogger
-            );
-            
-        } catch (IOException e) {
-            getLogger().severe("命令方块日志写入失败: " + e.getMessage());
-        }
-    }
-
-    // 通用写入方法（带自动轮转）
-    private void writeWithRotation(String entry, 
-                                  BufferedWriter writer,
-                                  File currentFile,
-                                  long currentSize,
-                                  Runnable rotator) throws IOException {
-        byte[] bytes = entry.getBytes();
-        
-        // 检查文件大小
-        if (currentSize + bytes.length > MAX_LOG_SIZE) {
-            rotator.run(); // 执行轮转
-            currentSize = 0; // 重置大小计数器
-        }
-        
-        writer.write(entry);
-        writer.flush();
-        
-        // 更新大小计数器
-        if (writer == normalLogWriter) {
-            normalLogSize += bytes.length;
-        } else {
-            commandBlockLogSize += bytes.length;
-        }
-    }
-
-    @Override
-    public void onDisable() {
-        closeWriter(normalLogWriter, "普通日志");
-        closeWriter(commandBlockLogWriter, "命令方块日志");
-    }
-
-    private void closeWriter(BufferedWriter writer, String logType) {
-        try {
-            if (writer != null) {
-                writer.close();
-                getLogger().info(logType + "写入器已关闭");
+            if (cmd != null) {
+                return cmd.execute(sender, command.split(" ")[0], command.split(" "));
             }
+        } catch (Exception e) {
+            getLogger().warning("Error executing command: " + command + " - " + e.getMessage());
+            return false;
+        }
+
+        return false;
+    }
+
+    private void logCommand(String senderName, String command, boolean success) {
+        commandBlockCount++;
+
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+        String logLine = String.format("%d [%s] [%s] [%s] [%s]\n", commandBlockCount, timestamp, senderName, command, success ? "Success" : "Failure");
+
+        try {
+            commandBlockLogWriter.write(logLine);
         } catch (IOException e) {
-            getLogger().warning("关闭" + logType + "写入器失败: " + e.getMessage());
+            getLogger().warning("Failed to log command: " + e.getMessage());
+        }
+    }
+
+    private void logCommandBlock(String senderName, String coordinates, String command, boolean success) {
+        commandBlockCount++;
+
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+        String logLine = String.format("%d [%s] [CommandBlock at %s] [%s] [%s]\n",
+                commandBlockCount, timestamp, coordinates, command, success ? "Success" : "Failure");
+
+        try {
+            commandBlockLogWriter.write(logLine);
+        } catch (IOException e) {
+            getLogger().warning("Failed to log command block command: " + e.getMessage());
         }
     }
 }
