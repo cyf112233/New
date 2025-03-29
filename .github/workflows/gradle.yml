@@ -22,13 +22,13 @@ jobs:
         cache: 'gradle'
     
     - name: Make gradlew executable
-      run: cd LogX&&chmod +x gradlew
+      run: chmod +x gradlew
     
     - name: Build with Gradle
-      run: cd LogX&&./gradlew ciBuild --stacktrace --no-daemon
+      run: ./gradlew ciBuild --stacktrace --no-daemon
     
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Artifacts
         path: |
