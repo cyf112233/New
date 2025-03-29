@@ -3,22 +3,22 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
-group = 'com.Tms'
-version = '2.1.0'
+group = 'com.yourdomain'
+version = System.getenv('GITHUB_REF_NAME') ?: '2.1.0'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
+    withSourcesJar()
+    withJavadocJar()
 }
 
 repositories {
     mavenCentral()
     maven { 
-        url = uri('https://repo.papermc.io/repository/maven-public/') 
-    }
-    maven { 
-        url = uri('https://oss.sonatype.org/content/groups/public/') 
+        url 'https://repo.papermc.io/repository/maven-public/'
+        content { includeGroup 'io.papermc.paper' }
     }
 }
 
@@ -26,40 +26,35 @@ dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
     compileOnly 'org.jetbrains:annotations:24.0.1'
     
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
 }
 
 tasks.named('shadowJar') {
+    archiveClassifier = ''
     archiveFileName = "CommandLogger-${version}.jar"
     minimize()
     
-    relocate('org.jetbrains.annotations', 'com.yourdomain.shaded.annotations')
-    
-    exclude('META-INF/*.SF')
-    exclude('META-INF/*.DSA')
-    exclude('META-INF/*.RSA')
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs.add('-Xlint:deprecation')
-    options.release = 17 // 必须显式设置
+    options.release = 21 // 关键设置：指定Java 21字节码
+    options.compilerArgs.addAll(['-parameters', '-Xlint:all'])
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    jvmArgs('--enable-preview') // Java 21预览特性支持
 }
 
-tasks.named('processResources') {
-    filesMatching('plugin.yml') {
-        expand(version: version)
+tasks.register('ciBuild') {
+    dependsOn clean, test, shadowJar
+    doLast {
+        println "Build artifacts:"
+        fileTree(buildDir).include('**/*.jar').each { println it }
     }
-    filteringCharset = 'UTF-8'
-}
-
-tasks.register('copyToServer', Copy) {
-    from(tasks.shadowJar)
-    into(file("${System.getProperty('user.home')}/server/plugins"))
-    dependsOn(tasks.shadowJar)
 }
