@@ -1,8 +1,13 @@
-log-rotate:
-  enabled: true             # 启用或禁用日志轮转
-  max-size-mb: 10          # 单个日志文件的最大尺寸，单位MB
-  keep-days: 7             # 保留日志的天数
-
+# 忽略的坐标（格式：世界名,x,y,z）
 ignore-commandblocks:
-  - 1,1,1,world            # 忽略这个坐标的命令方块
-  - 2,2,2,world            # 忽略这个坐标的命令方块
+  - "world_nether,100,50,-200"
+  - "my_world,123,64,456"
+
+# 命令合并配置
+command-merge:
+  window: 3000    # 合并时间窗口（毫秒）
+  max-count: 10   # 最大合并次数
+
+# 日志轮转配置
+log-rotate:
+  keep-days: 7    # 保留日志天数
