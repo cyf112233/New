@@ -27,7 +27,7 @@
        run: |
          cd ./LogX
          chmod +x ./gradlew
-         ./gradlew build
+         ./gradlew clean shadowJar
      - name: Set date and short sha as tag name
        id: set_tag
        run: |
