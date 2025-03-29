@@ -8,7 +8,7 @@ version = '2.1.0'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
@@ -44,7 +44,7 @@ tasks.named('shadowJar') {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs.add('-Xlint:deprecation')
-    options.release = 21 // 必须显式设置
+    options.release = 17 // 必须显式设置
 }
 
 tasks.named('test') {
