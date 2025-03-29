@@ -1,19 +1,63 @@
 plugins {
     id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
-group = 'com.Tms'
-version = '1.0.0'
+group 'com.yourdomain'
+version '2.1.0'
 
 repositories {
     mavenCentral()
-    maven { url 'https://repo.maven.apache.org/maven2' }
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url 'https://oss.sonatype.org/content/groups/public/' }
 }
 
 dependencies {
-    implementation 'org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT'  // 根据你的版本来调整
-    implementation 'org.spongepowered:configurate-core:4.1'
+    compileOnly 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
+    implementation 'org.jetbrains:annotations:24.0.1'
+    
+    // 测试依赖
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
 }
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+shadowJar {
+    archiveFileName = "CommandLogger-${version}.jar"
+    minimize()
+    
+    // 重定位依赖（如有）
+    relocate 'org.jetbrains.annotations', 'com.yourdomain.shaded.annotations'
+    
+    // 排除不必要的文件
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+}
+
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:deprecation']
+}
+
+test {
+    useJUnitPlatform()
+}
+
+processResources {
+    filesMatching('plugin.yml') {
+        expand(version: version)
+    }
+    filteringCharset = 'UTF-8'
+}
+
+task copyToServer(type: Copy) {
+    from shadowJar
+    into file(System.getProperty('user.home') + '/server/plugins'
+    dependsOn shadowJar
 }
