@@ -32,7 +32,7 @@ shadowJar {
     minimize()
     
     // 重定位依赖（如有）
-    relocate 'org.jetbrains.annotations', 'com.yourdomain.shaded.annotations'
+    //relocate 'org.jetbrains.annotations', 'com.yourdomain.shaded.annotations'
     
     // 排除不必要的文件
     exclude 'META-INF/*.SF'
@@ -54,10 +54,4 @@ processResources {
         expand(version: version)
     }
     filteringCharset = 'UTF-8'
-}
-
-task copyToServer(type: Copy) {
-    from shadowJar
-    into file(System.getProperty('user.home') + '/server/plugins'
-    dependsOn shadowJar
 }
