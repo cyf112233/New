@@ -8,7 +8,7 @@ version = System.getenv('GITHUB_REF_NAME') ?: '2.1.0'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(23)
     }
     withSourcesJar()
     withJavadocJar()
@@ -72,7 +72,7 @@ tasks.named('shadowJar') {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release = 21
+    options.release = 23
     options.compilerArgs.addAll(['-parameters', '-Xlint:all'])
 }
 
