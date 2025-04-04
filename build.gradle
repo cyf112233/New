@@ -8,7 +8,7 @@ version = System.getenv('GITHUB_REF_NAME') ?: '2.1.0'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(23)
+        languageVersion = JavaLanguageVersion.of(17)
     }
     withSourcesJar()
     withJavadocJar()
